@@ -163,7 +163,40 @@ rate limiting anche a livello di CDN/edge (es. Vercel Firewall o
 Cloudflare) e un CAPTCHA invisibile se dovesse comparire spam
 automatizzato.
 
-## 9. Personalizzare i colori/testi
+## 9. Appunti, Libri usati e Admin
+
+Il sito ha tre sezioni, raggiungibili dalle schede in alto:
+
+- `#/` — S.O.S., invariato (endpoint `api/messages.ts`)
+- `#/appunti` — appunti condivisi, filtri per classe, materia e professore
+- `#/libri` — annunci di libri usati con Instagram e/o telefono
+- `#/admin` — pagina riservata (non linkata) per rimuovere appunti e
+  annunci e leggere i messaggi S.O.S.
+
+Tutto passa da un'unica funzione, `api/hub.ts`. I file degli appunti vanno
+direttamente nello storage di Supabase (bucket `appunti`) tramite un link
+firmato creato dal server, così non c'è il limite di 4,5 MB delle funzioni
+Vercel.
+
+Scelte di sicurezza:
+
+- il numero di telefono non è mai nell'elenco pubblico: si ottiene solo con
+  "Mostra numero" (limite di 20 richieste al minuto per IP) e chi lo
+  inserisce deve confermare che sarà visibile;
+- ogni annuncio ha un codice di 6 caratteri per cancellarlo, salvato solo
+  come hash; il dispositivo del venditore lo ricorda in automatico;
+- la password admin vive solo in `ADMIN_PASSWORD` su Vercel e viene
+  confrontata lato server.
+
+Configurazione (una volta sola):
+
+1. Supabase → SQL Editor → incolla ed esegui `supabase/setup-appunti-libri.sql`.
+2. Vercel → Settings → Environment Variables → aggiungi `ADMIN_PASSWORD`.
+
+In locale, senza variabili Supabase, `npm run dev` tiene appunti e libri in
+memoria (si azzerano a ogni riavvio).
+
+## 10. Personalizzare i colori/testi
 
 - Palette: `tailwind.config.js` → `theme.extend.colors` (`night`,
   `azure`, `gold`, `mist`), derivata dai colori del logo.
