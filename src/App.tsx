@@ -7,6 +7,9 @@ import SuccessScreen from "./components/SuccessScreen";
 import NotesPage from "./pages/NotesPage";
 import BooksPage from "./pages/BooksPage";
 import AdminPage from "./pages/AdminPage";
+import GiocaPage from "./pages/GiocaPage";
+import SchermoPage from "./pages/SchermoPage";
+import RegiaPage from "./pages/RegiaPage";
 import { useHashRoute } from "./lib/useHashRoute";
 
 function SosPage() {
@@ -23,6 +26,17 @@ function SosPage() {
 
 export default function App() {
   const route = useHashRoute();
+
+  // Pagine dell'assemblea: a tutto schermo, senza menu del sito
+  if (route === "schermo") return <SchermoPage />;
+  if (route === "gioca" || route === "regia") {
+    return (
+      <div className="relative min-h-screen">
+        <Background />
+        {route === "gioca" ? <GiocaPage /> : <RegiaPage />}
+      </div>
+    );
+  }
 
   return (
     <div className="relative min-h-screen">

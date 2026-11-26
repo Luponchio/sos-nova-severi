@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 
-export type Route = "sos" | "appunti" | "libri" | "admin";
+export type Route = "sos" | "appunti" | "libri" | "admin" | "gioca" | "schermo" | "regia";
 
 function parse(hash: string): Route {
   const name = hash.replace(/^#\/?/, "").split(/[/?]/)[0].toLowerCase();
-  if (name === "appunti" || name === "libri" || name === "admin") return name;
+  if (["appunti", "libri", "admin", "gioca", "schermo", "regia"].includes(name)) return name as Route;
   return "sos";
 }
 
-/** Navigazione con #/appunti, #/libri, #/admin: funziona su Vercel senza configurazioni. */
+/** Navigazione con #/appunti, #/libri, #/admin (e #/gioca, #/schermo, #/regia per l'assemblea): funziona su Vercel senza configurazioni. */
 export function useHashRoute(): Route {
   const [route, setRoute] = useState<Route>(() => parse(window.location.hash));
 
@@ -27,6 +27,9 @@ export function useHashRoute(): Route {
       appunti: "Appunti · Nova Severi",
       libri: "Libri usati · Nova Severi",
       admin: "Admin · Nova Severi",
+      gioca: "Assemblea · Nova Severi",
+      schermo: "Schermo · Assemblea",
+      regia: "Regia · Assemblea",
     };
     document.title = titles[route];
   }, [route]);
