@@ -1,5 +1,4 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import logo from "../assets/logo.png";
 import {
   ANNI,
   ANNO_MAX,
@@ -47,7 +46,7 @@ export default function GiocaPage() {
     <div className="mx-auto flex min-h-[100svh] max-w-md flex-col px-5 pb-10" style={{ paddingTop: "max(1rem, env(safe-area-inset-top))" }}>
       <div className="flex items-center justify-between py-2">
         <div className="flex items-center gap-2.5">
-          <img src={logo} alt="" className="h-8 w-8 rounded-full ring-1 ring-white/10" />
+          <span className="text-xl text-gold-300">✦</span>
           <span className="text-sm font-semibold text-mist/90">Assemblea</span>
         </div>
         {classe && (
@@ -85,7 +84,7 @@ export default function GiocaPage() {
       </div>
 
       <p className="text-center text-[11px] text-mist/30">
-        Nova Severi · Rappresentanza studentesca · Anonimo: nessun nome, solo la classe
+        Anonimo: nessun nome, solo la classe
       </p>
     </div>
   );

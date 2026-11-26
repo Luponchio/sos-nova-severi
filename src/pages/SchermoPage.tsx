@@ -1,6 +1,5 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import QRCode from "qrcode";
-import logo from "../assets/logo.png";
 import Costellazione from "../components/Costellazione";
 import {
   ANNO_MAX,
@@ -35,7 +34,7 @@ function Avvio({ onScelta }: { onScelta: (m: "online" | "offline") => void }) {
   return (
     <Sfondo>
       <div className="flex h-full flex-col items-center justify-center gap-8 px-8 text-center">
-        <img src={logo} alt="" className="h-20 w-20 rounded-full ring-1 ring-white/10" />
+        <span className="text-6xl text-gold-300">✦</span>
         <h1 className="font-display text-5xl font-semibold text-mist">Schermo dell'assemblea</h1>
         <div className="grid w-full max-w-3xl gap-4 sm:grid-cols-2">
           <button
@@ -326,7 +325,6 @@ function Scena(p: ScenaProps) {
             {accese >= p.obiettivo && <span className="ml-3 text-gold-300">✦ completata</span>}
           </p>
         </div>
-        <img src={logo} alt="" className="absolute bottom-[4vh] right-[3vw] h-[6vw] w-[6vw] rounded-full opacity-90" />
       </>
     );
   }
@@ -341,7 +339,6 @@ function Scena(p: ScenaProps) {
         <p className="mt-2 font-display text-[18vw] font-semibold leading-none text-gold-300 drop-shadow-[0_0_60px_rgba(255,214,102,0.35)]">1522</p>
         <p className="mt-4 text-[2.4vw] font-semibold">Numero antiviolenza e antistalking</p>
         <p className="mt-2 text-[1.7vw] text-mist/75">Gratuito, attivo 24 ore su 24. Anche per chi vuole aiutare un'amica.</p>
-        <img src={logo} alt="Nova Severi" className="mt-[5vh] h-[6vw] w-[6vw] rounded-full" />
       </div>
     );
   }
@@ -358,7 +355,7 @@ function Scena(p: ScenaProps) {
             : "Due giochi, tutta la sala insieme. Preparatevi a rispondere ad alta voce."}
         </p>
       </div>
-      {p.online && <Qr url={url} size="26vw" etichetta={url.replace(/^https?:\/\//, "")} />}
+      {p.online && <Qr url={url} size="26vw" />}
     </div>
   );
 }

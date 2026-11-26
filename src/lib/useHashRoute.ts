@@ -27,7 +27,7 @@ export function useHashRoute(): Route {
       appunti: "Appunti · Nova Severi",
       libri: "Libri usati · Nova Severi",
       admin: "Admin · Nova Severi",
-      gioca: "Assemblea · Nova Severi",
+      gioca: "Assemblea d'istituto",
       schermo: "Schermo · Assemblea",
       regia: "Regia · Assemblea",
     };
