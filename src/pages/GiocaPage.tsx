@@ -93,7 +93,7 @@ function Gioco({ stato }: { stato: StatoAssemblea }) {
   if (fase === "stella") {
     const mandata = ricorda(chiave("parola"));
     if (mandata) {
-      return <Attesa titolo="Guarda lo schermo" testo={`La tua parola «${mandata}» sta per diventare una stella.`} />;
+      return <Attesa titolo="Parola inviata" testo="Guarda lo schermo." />;
     }
     if (!stella.aperta) return <Attesa titolo="Tra poco tocca a te" testo="Appena si apre, qui compare dove scrivere." />;
     return <FormParola onInviata={(p) => ricorda(chiave("parola"), p)} />;
@@ -188,7 +188,7 @@ function FormParola({ onInviata }: { onInviata: (p: string) => void }) {
     });
   }
 
-  if (fatto) return <Attesa titolo="Guarda lo schermo" testo={`La tua parola «${pulita}» sta per diventare una stella.`} />;
+  if (fatto) return <Attesa titolo="Parola inviata" testo="Guarda lo schermo." />;
 
   return (
     <form onSubmit={submit} className="animate-fade-up text-center">

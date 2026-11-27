@@ -52,8 +52,11 @@ const STATI_QUIZ = ["pronta", "aperta", "chiusa", "risposta", "classifica"] as c
 // Filtro grossolano: tutto passa comunque dalla regia prima di finire sullo schermo.
 const PAROLACCE = [
   // Niente pezzi troppo corti: "fica" bloccherebbe "Significa", "cesso" "Successo".
-  "cazz", "merd", "puttan", "stronz", "vaffan", "coglion", "porcodio", "diocane",
-  "porcamadonna", "frocio", "ricchion", "zoccol", "bastard", "minchi", "pompin", "fottut",
+  "cazz", "merd", "puttan", "stronz", "vaffan", "coglion", "frocio", "ricchion",
+  "zoccol", "bastard", "minchi", "pompin", "fottut",
+  // bestemmie, anche scritte attaccate o con lettere cambiate
+  "porcod", "porkod", "diocan", "diokan", "dioporc", "diomaial", "diobestia", "porcamadonn",
+  "madonnaputt", "madonnatroi", "porcogiuda",
 ];
 
 interface Stato {
@@ -312,10 +315,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const parola = pulisci(b.parola);
         if (!parola) return res.status(400).json({ error: "Una parola sola, solo lettere (massimo 24)." });
         const bassa = parola.toLowerCase().replace(/[^a-zà-ù]/g, "");
-        const brutta = PAROLACCE.some((w) => bassa.includes(w));
+        if (PAROLACCE.some((w) => bassa.includes(w))) {
+          // non la salviamo nemmeno: chi l'ha scritta può mandarne un'altra
+          return res.status(400).json({ error: "Questa parola non si può usare. Scrivine un'altra." });
+        }
         const { error } = await db().from("assemblea_parole").insert({
           parola,
-          stato: brutta ? "no" : "attesa",
+          stato: "attesa",
           device_hash: sha256("parola:" + device).toString("hex"),
         });
         if (error) {
