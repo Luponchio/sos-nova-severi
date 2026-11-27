@@ -169,7 +169,7 @@ function Pannello({ pw, onEsci }: { pw: string; onEsci: () => void }) {
             <button
               key={f}
               disabled={busy}
-              onClick={() => patch({ fase: f })}
+              onClick={() => patch(f === "stella" ? { fase: f, stellaAperta: true } : { fase: f })}
               className={`rounded-xl py-3 text-sm font-semibold ${
                 s.fase === f ? "bg-gold-400 text-night-950" : "border border-white/10 bg-white/[0.04]"
               }`}

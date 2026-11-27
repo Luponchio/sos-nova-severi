@@ -78,7 +78,7 @@ export default function GiocaPage() {
 function Attesa({ titolo, testo, grande }: { titolo: string; testo?: string; grande?: string }) {
   return (
     <div className="animate-fade-up text-center">
-      <div className="mx-auto mb-6 h-16 w-16 animate-pulse rounded-full bg-gold-400/20 shadow-gold" />
+      <p className="mb-4 animate-pulse text-5xl text-gold-300 drop-shadow-[0_0_18px_rgba(255,214,102,0.6)]">✦</p>
       {grande && <p className="font-display text-7xl font-semibold text-gold-300">{grande}</p>}
       <h1 className="mt-2 font-display text-3xl font-semibold text-mist">{titolo}</h1>
       {testo && <p className="mx-auto mt-3 max-w-xs text-sm leading-relaxed text-mist/60">{testo}</p>}
