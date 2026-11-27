@@ -19,9 +19,6 @@ export const DOMANDE: { testo: string; anno: number }[] = [
 export const FRASE = "RISPETTO";
 export const DOMANDA_STELLA = "Cosa vuol dire rispetto, per te?";
 
-/** In sala ci sono quarte e quinte: si possono aggiungere altri anni qui. */
-export const ANNI = [4, 5];
-export const SEZIONI = ["A", "B", "C", "D", "E", "F", "G", "H"];
 
 export const ANNO_MIN = 1900;
 export const ANNO_MAX = 2026;
@@ -47,14 +44,23 @@ export interface StatoAssemblea {
     risposte: number;
     anno?: number;
     tentativi?: number[];
+    /** Codice di chi è andato più vicino nell'ultima domanda. */
     migliore?: string;
-    classifica?: { classe: string; punti: number; giocatori: number }[];
+    classifica?: RigaClassifica[];
   };
+}
+
+export interface RigaClassifica {
+  codice: string;
+  punti: number;
+  risposte: number;
 }
 
 export interface StatoRegia extends StatoAssemblea {
   attesa: Parola[];
   domande: { testo: string; anno: number }[];
+  /** Classifica sempre aggiornata, con il PIN per controllare chi sale sul palco. */
+  podio: (RigaClassifica & { pin: string })[];
 }
 
 export class ApiError extends Error {
@@ -102,8 +108,8 @@ function post<T>(path: string, body: unknown, headers: Record<string, string> = 
 
 export const mandaParola = (parola: string) => post("/api/assemblea", { tipo: "parola", parola, device: deviceId() });
 
-export const mandaRisposta = (domanda: number, anno: number, classe: string) =>
-  post("/api/assemblea", { tipo: "risposta", domanda, anno, classe, device: deviceId() });
+export const mandaRisposta = (domanda: number, anno: number) =>
+  post("/api/assemblea", { tipo: "risposta", domanda, anno, codice: identita().codice, device: deviceId() });
 
 export const regiaLeggi = (pw: string) =>
   call<StatoRegia>("/api/assemblea?r=regia", { headers: { "x-admin-password": pw } });
@@ -138,4 +144,41 @@ export function deviceId(): string {
     ricorda("device", id);
   }
   return id;
+}
+
+// ---------------------------------------------------------------------------
+// Codice anonimo del telefono: niente nomi. Chi vince sale sul palco col telefono
+// e il PIN sullo schermo del suo telefono deve coincidere con quello della regia.
+// ---------------------------------------------------------------------------
+
+const ALFABETO = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // niente 0/O e 1/I
+let memCodice = "";
+
+function casuale(n: number): number {
+  if (typeof crypto !== "undefined" && "getRandomValues" in crypto) {
+    return crypto.getRandomValues(new Uint32Array(1))[0] % n;
+  }
+  return Math.floor(Math.random() * n);
+}
+
+export function identita(): { codice: string } {
+  const salvato = ricorda("codice");
+  if (/^[A-HJ-NP-Z2-9]{4}$/.test(salvato)) return { codice: salvato };
+  if (!memCodice) {
+    memCodice = Array.from({ length: 4 }, () => ALFABETO[casuale(ALFABETO.length)]).join("");
+    ricorda("codice", memCodice);
+  }
+  return { codice: memCodice };
+}
+
+async function sha256hex(testo: string): Promise<string> {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(testo));
+  return Array.from(new Uint8Array(buf), (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** Stesso calcolo del server (api/assemblea.ts, pinDa): il PIN non viaggia mai in rete. */
+export async function pinDelTelefono(): Promise<string> {
+  const impronta = await sha256hex("quiz:" + deviceId());
+  const h = await sha256hex("pin:" + impronta);
+  return String(parseInt(h.slice(0, 8), 16) % 10000).padStart(4, "0");
 }
