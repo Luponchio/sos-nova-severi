@@ -4,6 +4,7 @@ import {
   ANNO_MIN,
   ApiError,
   DOMANDA_STELLA,
+  PAROLE_PRONTE,
   type StatoAssemblea,
   identita,
   leggiStato,
@@ -179,13 +180,17 @@ function FormParola({ onInviata }: { onInviata: (p: string) => void }) {
   const { stato, errore, invia } = useInvio();
   const pulita = parola.trim();
 
-  function submit(e: FormEvent) {
-    e.preventDefault();
-    if (!pulita) return;
-    invia(() => mandaParola(pulita), () => {
-      onInviata(pulita);
+  function manda(p: string) {
+    if (!p || stato === "invio") return;
+    invia(() => mandaParola(p), () => {
+      onInviata(p);
       setFatto(true);
     });
+  }
+
+  function submit(e: FormEvent) {
+    e.preventDefault();
+    manda(pulita);
   }
 
   if (fatto) return <Attesa titolo="Parola inviata" testo="Guarda lo schermo." />;
@@ -194,20 +199,34 @@ function FormParola({ onInviata }: { onInviata: (p: string) => void }) {
     <form onSubmit={submit} className="animate-fade-up text-center">
       <p className="text-xs font-semibold uppercase tracking-[0.3em] text-gold-300">Accendi una stella</p>
       <h1 className="mt-3 font-display text-4xl font-semibold leading-tight text-mist">{DOMANDA_STELLA}</h1>
-      <p className="mt-3 text-sm text-mist/60">Una parola. Diventerà una stella sullo schermo.</p>
+      <p className="mt-3 text-sm text-mist/60">Tocca una parola, oppure scrivi la tua.</p>
+
+      <div className="mt-6 grid grid-cols-2 gap-2.5">
+        {PAROLE_PRONTE.map((p) => (
+          <button
+            key={p}
+            type="button"
+            disabled={stato === "invio"}
+            onClick={() => manda(p)}
+            className="rounded-2xl border border-gold-400/40 bg-gold-500/10 py-4 text-lg font-semibold text-gold-300 transition active:scale-95 active:bg-gold-400 active:text-night-950 disabled:opacity-50"
+          >
+            {p}
+          </button>
+        ))}
+      </div>
+
       <input
         value={parola}
         onChange={(e) => setParola(e.target.value.replace(/[^\p{L}' -]/gu, ""))}
         maxLength={24}
-        autoFocus
         enterKeyHint="send"
         placeholder="La tua parola"
-        className="mt-8 w-full rounded-2xl border border-white/15 bg-night-900/70 px-5 py-4 text-center text-2xl font-semibold text-mist placeholder:text-mist/25 focus:border-gold-400 focus:outline-none"
+        className="mt-6 w-full rounded-2xl border border-white/15 bg-night-900/70 px-5 py-4 text-center text-2xl font-semibold text-mist placeholder:text-mist/25 focus:border-gold-400 focus:outline-none"
       />
       {errore && <p className="mt-3 text-sm text-gold-300">{errore}</p>}
       <button
         disabled={!pulita || stato === "invio"}
-        className="mt-5 w-full rounded-2xl bg-gradient-to-b from-gold-400 to-gold-500 py-4 text-lg font-bold text-night-950 shadow-gold transition active:scale-[0.98] disabled:opacity-50"
+        className="mt-4 w-full rounded-2xl bg-gradient-to-b from-gold-400 to-gold-500 py-4 text-lg font-bold text-night-950 shadow-gold transition active:scale-[0.98] disabled:opacity-50"
       >
         {stato === "invio" ? "Invio… (se il segnale è debole ci metto un po')" : "Accendi ✦"}
       </button>

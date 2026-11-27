@@ -18,6 +18,8 @@ export const DOMANDE: { testo: string; anno: number }[] = [
 /** La frase che le stelle accendono. */
 export const FRASE = "RISPETTO";
 export const DOMANDA_STELLA = "Cosa vuol dire rispetto, per te?";
+/** Parole pronte da toccare: si approvano da sole. Copiate in api/assemblea.ts (PAROLE_PRONTE). */
+export const PAROLE_PRONTE = ["Ascolto", "Fiducia", "Libertà", "Consenso"];
 
 
 export const ANNO_MIN = 1900;

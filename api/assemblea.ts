@@ -49,6 +49,9 @@ const DEVICE_RE = /^[0-9a-f-]{36}$/;
 const FASI = ["attesa", "stella", "rumore", "quiz", "fine"] as const;
 const STATI_QUIZ = ["pronta", "aperta", "chiusa", "risposta", "classifica"] as const;
 
+/** Le 4 parole pronte dei telefoni: vanno sullo schermo senza approvazione. Copiate in src/lib/assemblea.ts. */
+const PAROLE_PRONTE = ["Ascolto", "Fiducia", "Libertà", "Consenso"];
+
 // Filtro grossolano: tutto passa comunque dalla regia prima di finire sullo schermo.
 const PAROLACCE = [
   // Niente pezzi troppo corti: "fica" bloccherebbe "Significa", "cesso" "Successo".
@@ -321,7 +324,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
         const { error } = await db().from("assemblea_parole").insert({
           parola,
-          stato: "attesa",
+          stato: PAROLE_PRONTE.includes(parola) ? "ok" : "attesa",
           device_hash: sha256("parola:" + device).toString("hex"),
         });
         if (error) {
