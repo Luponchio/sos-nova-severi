@@ -351,7 +351,7 @@ function Scena(p: ScenaProps) {
         <h1 className="mt-3 font-display text-[5.5vw] font-semibold leading-[1.02]">Adesso tocca a voi.</h1>
         <p className="mt-5 text-[1.9vw] leading-snug text-mist/80">
           {p.online
-            ? "Inquadrate il QR, scegliete la vostra classe e tenete aperta la pagina: i giochi compaiono da soli."
+            ? "Inquadrate il QR: ognuno riceve un codice anonimo. Tenete aperta la pagina, i giochi compaiono da soli."
             : "Due giochi, tutta la sala insieme. Preparatevi a rispondere ad alta voce."}
         </p>
       </div>
@@ -458,7 +458,7 @@ function Rivelazione({ anno, tentativi, migliore }: { anno: number; tentativi: n
         </p>
         {fatto && migliore && (
           <p className="animate-fade-up text-[2vw] text-mist/85">
-            Il più vicino: <span className="font-semibold text-gold-300">{migliore.replace(/^(\d)/, "$1ª ")}</span>
+            Il più vicino: <span className="font-mono font-semibold tracking-widest text-gold-300">{migliore}</span>
           </p>
         )}
       </div>
@@ -486,28 +486,50 @@ function Rivelazione({ anno, tentativi, migliore }: { anno: number; tentativi: n
   );
 }
 
-function Classifica({ righe }: { righe: { classe: string; punti: number; giocatori: number }[] }) {
-  const max = Math.max(1, ...righe.map((r) => r.punti));
+function Classifica({ righe }: { righe: { codice: string; punti: number }[] }) {
+  // podio: 2° a sinistra, 1° al centro, 3° a destra
+  const podio = [righe[1], righe[0], righe[2]];
+  const altezze = ["h-[22vh]", "h-[30vh]", "h-[16vh]"];
+  const medaglie = ["2", "1", "3"];
   return (
-    <div className="flex h-full flex-col px-[8vw] py-[7vh]">
-      <p className="text-[1.6vw] font-semibold uppercase tracking-[0.35em] text-gold-300">Indovina l'anno</p>
-      <h1 className="mt-2 font-display text-[4.5vw] font-semibold">Classifica delle classi</h1>
-      <div className="mt-[4vh] flex flex-1 flex-col justify-center gap-[1.6vh]">
-        {righe.length === 0 && <p className="text-[2vw] text-mist/60">Ancora nessuna risposta.</p>}
-        {righe.slice(0, 8).map((r, i) => (
-          <div key={r.classe} className="flex animate-fade-up items-center gap-4" style={{ animationDelay: `${i * 120}ms` }}>
-            <span className="w-[7vw] font-display text-[2.6vw] font-semibold">{r.classe.replace(/^(\d)/, "$1ª ")}</span>
-            <div className="h-[4.5vh] flex-1 overflow-hidden rounded-full bg-white/10">
-              <div
-                className={`h-full rounded-full ${i === 0 ? "bg-gold-300" : "bg-azure-300/80"} transition-[width] duration-1000 ease-out`}
-                style={{ width: `${(r.punti / max) * 100}%` }}
-              />
-            </div>
-            <span className="w-[9vw] text-right text-[2vw] font-semibold tabular-nums">{r.punti}</span>
-          </div>
-        ))}
-      </div>
-      <p className="text-[1.2vw] text-mist/50">Punti medi a giocatore: una classe piccola può battere una grande.</p>
+    <div className="flex h-full flex-col px-[8vw] py-[6vh]">
+      <p className="text-center text-[1.6vw] font-semibold uppercase tracking-[0.35em] text-gold-300">Indovina l'anno</p>
+      <h1 className="mt-2 text-center font-display text-[4.2vw] font-semibold">Chi sale sul palco?</h1>
+      {righe.length === 0 ? (
+        <p className="mt-[10vh] text-center text-[2vw] text-mist/60">Ancora nessuna risposta.</p>
+      ) : (
+        <div className="mt-auto flex items-end justify-center gap-[2vw]">
+          {podio.map((r, i) =>
+            r ? (
+              <div key={r.codice} className="flex w-[20vw] animate-fade-up flex-col items-center" style={{ animationDelay: `${[600, 1400, 200][i]}ms` }}>
+                <p className={`font-mono font-bold tracking-[0.15em] ${i === 1 ? "text-[5vw] text-gold-300" : "text-[3.4vw] text-white"}`}>{r.codice}</p>
+                <p className="mb-[1.5vh] text-[1.4vw] text-mist/75">{r.punti} punti</p>
+                <div
+                  className={`flex w-full items-start justify-center rounded-t-[1.2vw] pt-[2vh] ${altezze[i]} ${
+                    i === 1 ? "bg-gold-300 text-night-950" : "bg-white/15 text-white"
+                  }`}
+                >
+                  <span className="font-display text-[5vw] font-semibold leading-none">{medaglie[i]}</span>
+                </div>
+              </div>
+            ) : (
+              <div key={i} className="w-[20vw]" />
+            )
+          )}
+        </div>
+      )}
+      {righe.length > 3 && (
+        <p className="mt-[3vh] text-center text-[1.3vw] text-mist/60">
+          {righe.slice(3, 8).map((r, i) => (
+            <span key={r.codice} className="mx-[1vw]">
+              {i + 4}° <b className="font-mono tracking-widest text-mist/85">{r.codice}</b>
+            </span>
+          ))}
+        </p>
+      )}
+      <p className="mt-[2vh] text-center text-[1.2vw] text-mist/50">
+        Chi vince sale col telefono: il PIN sul suo schermo deve combaciare con quello della regia.
+      </p>
     </div>
   );
 }

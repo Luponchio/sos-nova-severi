@@ -3,7 +3,10 @@
  *
  *   GET  /api/assemblea                       stato pubblico (schermo e telefoni)
  *   POST /api/assemblea  { tipo: "parola", parola, device }               dal telefono
- *   POST /api/assemblea  { tipo: "risposta", domanda, anno, classe, device } dal telefono
+ *   POST /api/assemblea  { tipo: "risposta", domanda, anno, codice, device } dal telefono
+ *
+ * Il codice anonimo del telefono si salva nella colonna "classe" di assemblea_risposte
+ * (prima il quiz si giocava per classi): così non serve cambiare le tabelle.
  *   GET  /api/assemblea?r=regia               stato + parole da approvare   (x-admin-password)
  *   POST /api/assemblea?r=regia  { azione, ... }                            (x-admin-password)
  *
@@ -31,7 +34,17 @@ const DOMANDE: { testo: string; anno: number }[] = [
   { testo: "Il femminicidio diventa un reato a sé nel Codice penale.", anno: 2025 },
 ];
 
-const CLASSE_RE = /^[1-5][A-Z]$/;
+/** Codice anonimo del telefono (niente 0/O e 1/I per non confondersi). */
+const CODICE_RE = /^[A-HJ-NP-Z2-9]{4}$/;
+
+/**
+ * PIN di controllo per chi sale sul palco. Non viene salvato da nessuna parte:
+ * si ricava dall'impronta del telefono, e il telefono lo ricalcola da solo
+ * (src/lib/assemblea.ts, pinDelTelefono). Solo la regia e quel telefono lo vedono.
+ */
+function pinDa(deviceHash: string): string {
+  return String(parseInt(sha256("pin:" + deviceHash).toString("hex").slice(0, 8), 16) % 10000).padStart(4, "0");
+}
 const DEVICE_RE = /^[0-9a-f-]{36}$/;
 const FASI = ["attesa", "stella", "rumore", "quiz", "fine"] as const;
 const STATI_QUIZ = ["pronta", "aperta", "chiusa", "risposta", "classifica"] as const;
@@ -116,7 +129,7 @@ async function salvaStato(stato: Stato) {
 }
 
 /** Tutto quello che schermo e telefoni devono sapere. Le risposte giuste escono solo dopo "Rivela". */
-async function statoPubblico(stato: Stato) {
+async function calcola(stato: Stato) {
   const client = db();
   const { data: parole, error: e1 } = await client
     .from("assemblea_parole")
@@ -129,39 +142,37 @@ async function statoPubblico(stato: Stato) {
   const d = DOMANDE[stato.domanda] ?? DOMANDE[0];
   const { data: risposte, error: e2 } = await client
     .from("assemblea_risposte")
-    .select("domanda, anno, classe")
+    .select("domanda, anno, classe, device_hash, created_at")
     .lte("domanda", stato.domanda)
+    .order("created_at", { ascending: true })
     .limit(5000);
   if (e2) throw e2;
 
   const qui = (risposte ?? []).filter((r) => r.domanda === stato.domanda);
   const rivelata = stato.statoQuiz === "risposta" || stato.statoQuiz === "classifica";
 
-  let classifica: { classe: string; punti: number; giocatori: number }[] | undefined;
-  if (stato.statoQuiz === "classifica") {
-    // Media per giocatore, così una classe piena non vince solo perché è più numerosa.
-    const perClasse = new Map<string, { tot: number; giocate: number }>();
-    for (const r of risposte ?? []) {
-      const giusto = DOMANDE[r.domanda]?.anno;
-      if (giusto === undefined) continue;
-      const c = perClasse.get(r.classe) ?? { tot: 0, giocate: 0 };
-      c.tot += punti(r.anno, giusto);
-      c.giocate += 1;
-      perClasse.set(r.classe, c);
-    }
-    const domandeGiocate = new Set((risposte ?? []).map((r) => r.domanda)).size || 1;
-    classifica = [...perClasse.entries()]
-      .map(([classe, c]) => ({
-        classe,
-        // media a risposta × domande giocate: chi salta una domanda non viene premiato
-        punti: Math.round((c.tot / c.giocate) * domandeGiocate),
-        giocatori: Math.round(c.giocate / domandeGiocate) || 1,
-      }))
-      .sort((a, b) => b.punti - a.punti)
-      .slice(0, 10);
+  // Classifica dei singoli: si somma per telefono (device_hash), non per codice,
+  // così nessuno può "prendere in prestito" i punti di un altro scrivendo il suo codice.
+  const perTelefono = new Map<string, { codice: string; pin: string; punti: number; risposte: number; ultima: string }>();
+  for (const r of risposte ?? []) {
+    const giusto = DOMANDE[r.domanda]?.anno;
+    if (giusto === undefined) continue;
+    const t = perTelefono.get(r.device_hash) ?? { codice: r.classe, pin: pinDa(r.device_hash), punti: 0, risposte: 0, ultima: "" };
+    t.punti += punti(r.anno, giusto);
+    t.risposte += 1;
+    t.ultima = r.created_at;
+    perTelefono.set(r.device_hash, t);
   }
+  // a pari punti vince chi ha finito di rispondere prima
+  const podio = [...perTelefono.values()]
+    .sort((a, b) => b.punti - a.punti || a.ultima.localeCompare(b.ultima))
+    .slice(0, 10);
 
-  return {
+  const vicino = rivelata && qui.length
+    ? qui.reduce((m, r) => (Math.abs(r.anno - d.anno) < Math.abs(m.anno - d.anno) ? r : m))
+    : undefined;
+
+  const pubblico = {
     fase: stato.fase,
     versione: stato.versione,
     giro: stato.giro,
@@ -179,12 +190,14 @@ async function statoPubblico(stato: Stato) {
       risposte: qui.length,
       anno: rivelata ? d.anno : undefined,
       tentativi: rivelata ? qui.map((r) => r.anno).slice(0, 400) : undefined,
-      migliore: rivelata && qui.length
-        ? qui.reduce((m, r) => (Math.abs(r.anno - d.anno) < Math.abs(m.anno - d.anno) ? r : m)).classe
+      migliore: vicino?.classe ?? undefined,
+      // il PIN non esce mai qui: lo vedono solo la regia e il telefono che ha vinto
+      classifica: stato.statoQuiz === "classifica"
+        ? podio.map(({ codice, punti, risposte }) => ({ codice, punti, risposte }))
         : undefined,
-      classifica,
     },
   };
+  return { pubblico, podio };
 }
 
 async function gestisciRegia(req: VercelRequest, res: VercelResponse) {
@@ -200,7 +213,8 @@ async function gestisciRegia(req: VercelRequest, res: VercelResponse) {
       .order("created_at", { ascending: true })
       .limit(50);
     if (error) throw error;
-    return res.status(200).json({ ...(await statoPubblico(stato)), attesa: attesa ?? [], domande: DOMANDE });
+    const { pubblico, podio } = await calcola(stato);
+    return res.status(200).json({ ...pubblico, attesa: attesa ?? [], domande: DOMANDE, podio });
   }
 
   const b = body(req);
@@ -276,7 +290,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.query.r === "regia") return await gestisciRegia(req, res);
 
     if (req.method === "GET") {
-      return res.status(200).json(await statoPubblico(await leggiStato()));
+      return res.status(200).json((await calcola(await leggiStato())).pubblico);
     }
 
     if (req.method === "POST") {
@@ -314,18 +328,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       if (b.tipo === "risposta") {
-        const { domanda, anno, classe } = b;
+        const { domanda, anno, codice } = b;
         if (stato.fase !== "quiz" || stato.statoQuiz !== "aperta" || domanda !== stato.domanda) {
           return res.status(409).json({ error: "Le risposte per questa domanda sono chiuse." });
         }
         if (typeof anno !== "number" || !Number.isInteger(anno) || anno < 1800 || anno > 2100 ||
-            typeof classe !== "string" || !CLASSE_RE.test(classe)) {
+            typeof codice !== "string" || !CODICE_RE.test(codice)) {
           return res.status(400).json({ error: "Risposta non valida." });
         }
         const { error } = await db().from("assemblea_risposte").insert({
           domanda,
           anno,
-          classe,
+          classe: codice,
           device_hash: sha256("quiz:" + device).toString("hex"),
         });
         if (error) {

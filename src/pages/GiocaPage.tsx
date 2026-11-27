@@ -1,13 +1,13 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import {
-  ANNI,
   ANNO_MAX,
   ANNO_MIN,
   ApiError,
   DOMANDA_STELLA,
-  SEZIONI,
   type StatoAssemblea,
+  identita,
   leggiStato,
+  pinDelTelefono,
   mandaParola,
   mandaRisposta,
   ricorda,
@@ -19,7 +19,7 @@ const POLL_MS = 3000;
 export default function GiocaPage() {
   const [stato, setStato] = useState<StatoAssemblea | null>(null);
   const [offline, setOffline] = useState(false);
-  const [classe, setClasse] = useState(() => ricorda("classe"));
+  const { codice } = identita();
 
   useEffect(() => {
     let vivo = true;
@@ -49,17 +49,9 @@ export default function GiocaPage() {
           <span className="text-xl text-gold-300">✦</span>
           <span className="text-sm font-semibold text-mist/90">Assemblea</span>
         </div>
-        {classe && (
-          <button
-            onClick={() => {
-              ricorda("classe", "");
-              setClasse("");
-            }}
-            className="rounded-full border border-white/15 px-3 py-1 text-xs font-semibold text-gold-300"
-          >
-            {classe} · cambia
-          </button>
-        )}
+        <span className="rounded-full border border-gold-400/40 px-3 py-1 text-xs font-semibold text-mist/80">
+          il tuo codice <b className="ml-1 font-mono text-sm tracking-widest text-gold-300">{codice}</b>
+        </span>
       </div>
 
       {offline && (
@@ -69,62 +61,16 @@ export default function GiocaPage() {
       )}
 
       <div className="flex flex-1 flex-col justify-center py-6">
-        {!classe ? (
-          <SceltaClasse
-            onScelta={(c) => {
-              ricorda("classe", c);
-              setClasse(c);
-            }}
-          />
-        ) : !stato ? (
+        {!stato ? (
           <Attesa titolo="Mi collego…" testo="Ci vuole un attimo se il segnale è debole." />
         ) : (
-          <Gioco stato={stato} classe={classe} />
+          <Gioco stato={stato} />
         )}
       </div>
 
       <p className="text-center text-[11px] text-mist/30">
-        Anonimo: nessun nome, solo la classe
+        Anonimo: nessun nome. Il codice vive solo in questo telefono: non cambiarlo e non chiudere la pagina.
       </p>
-    </div>
-  );
-}
-
-function SceltaClasse({ onScelta }: { onScelta: (c: string) => void }) {
-  const [anno, setAnno] = useState<number | null>(null);
-  return (
-    <div className="animate-fade-up text-center">
-      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-gold-300">Prima di tutto</p>
-      <h1 className="mt-3 font-display text-4xl font-semibold text-mist">In che classe sei?</h1>
-      <p className="mt-3 text-sm text-mist/60">Nel quiz si gioca per la classe. Il tuo nome non serve.</p>
-
-      <div className="mt-8 grid grid-cols-2 gap-3">
-        {ANNI.map((a) => (
-          <button
-            key={a}
-            onClick={() => setAnno(a)}
-            className={`rounded-2xl border py-5 font-display text-3xl font-semibold transition ${
-              anno === a ? "border-gold-400 bg-gold-500/15 text-gold-300" : "border-white/10 bg-white/[0.04] text-mist"
-            }`}
-          >
-            {a}ª
-          </button>
-        ))}
-      </div>
-
-      {anno && (
-        <div className="mt-6 grid animate-fade-up grid-cols-4 gap-2.5">
-          {SEZIONI.map((s) => (
-            <button
-              key={s}
-              onClick={() => onScelta(`${anno}${s}`)}
-              className="rounded-2xl border border-white/10 bg-white/[0.04] py-4 text-xl font-semibold text-mist transition active:scale-95 active:bg-azure-500"
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -140,7 +86,7 @@ function Attesa({ titolo, testo, grande }: { titolo: string; testo?: string; gra
   );
 }
 
-function Gioco({ stato, classe }: { stato: StatoAssemblea; classe: string }) {
+function Gioco({ stato }: { stato: StatoAssemblea }) {
   const { fase, stella, quiz, giro } = stato;
   const chiave = (k: string) => `${k}:${giro}`;
 
@@ -156,9 +102,10 @@ function Gioco({ stato, classe }: { stato: StatoAssemblea; classe: string }) {
   if (fase === "quiz") {
     const mia = ricorda(chiave("q" + quiz.domanda));
     if (quiz.stato === "aperta" && !mia) {
-      return <FormAnno key={quiz.domanda} stato={stato} classe={classe} onInviata={(a) => ricorda(chiave("q" + quiz.domanda), String(a))} />;
+      return <FormAnno key={quiz.domanda} stato={stato} onInviata={(a) => ricorda(chiave("q" + quiz.domanda), String(a))} />;
     }
-    if ((quiz.stato === "risposta" || quiz.stato === "classifica") && quiz.anno) {
+    if (quiz.stato === "classifica" && quiz.classifica) return <MioPosto righe={quiz.classifica} />;
+    if (quiz.stato === "risposta" && quiz.anno) {
       const diff = mia ? Math.abs(Number(mia) - quiz.anno) : null;
       return (
         <Attesa
@@ -182,7 +129,7 @@ function Gioco({ stato, classe }: { stato: StatoAssemblea; classe: string }) {
       />
     );
   }
-  return <Attesa titolo="Si comincia tra poco" testo="Tieni aperta questa pagina: i giochi compaiono qui da soli." />;
+  return <Benvenuto />;
 }
 
 /** Riprova da sola se il segnale cade: in sala non prende bene. */
@@ -270,11 +217,9 @@ function FormParola({ onInviata }: { onInviata: (p: string) => void }) {
 
 function FormAnno({
   stato,
-  classe,
   onInviata,
 }: {
   stato: StatoAssemblea;
-  classe: string;
   onInviata: (anno: number) => void;
 }) {
   const [anno, setAnno] = useState(1970);
@@ -318,7 +263,7 @@ function FormAnno({
       <button
         disabled={invio === "invio"}
         onClick={() =>
-          invia(() => mandaRisposta(q.domanda, anno, classe), () => {
+          invia(() => mandaRisposta(q.domanda, anno), () => {
             onInviata(anno);
             setFatto(true);
           })
@@ -327,7 +272,55 @@ function FormAnno({
       >
         {invio === "invio" ? "Invio…" : `Rispondo ${anno}`}
       </button>
-      <p className="mt-3 text-xs text-mist/40">Giochi per la {classe}. Più ti avvicini, più punti fa la tua classe.</p>
+      <p className="mt-3 text-xs text-mist/40">Più ti avvicini all'anno giusto, più punti fai. Vince chi ne fa di più.</p>
     </div>
+  );
+}
+
+function Benvenuto() {
+  const { codice } = identita();
+  return (
+    <div className="animate-fade-up text-center">
+      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-gold-300">Il tuo codice</p>
+      <p className="mt-4 font-mono text-7xl font-bold tracking-[0.2em] text-gold-300">{codice}</p>
+      <h1 className="mt-6 font-display text-3xl font-semibold text-mist">Nessun nome, solo questo.</h1>
+      <p className="mx-auto mt-3 max-w-xs text-sm leading-relaxed text-mist/60">
+        Se vinci il quiz chiamiamo il tuo codice dal palco. Tieni aperta questa pagina: i giochi compaiono qui da soli.
+      </p>
+    </div>
+  );
+}
+
+const POSTI = ["1° posto", "2° posto", "3° posto"];
+
+/** Classifica finale: chi è sul podio vede il PIN da mostrare sul palco. */
+function MioPosto({ righe }: { righe: { codice: string; punti: number }[] }) {
+  const { codice } = identita();
+  const [pin, setPin] = useState("····");
+  useEffect(() => {
+    pinDelTelefono().then(setPin).catch(() => setPin("????"));
+  }, []);
+  const posto = righe.findIndex((r) => r.codice === codice);
+  const punti = posto >= 0 ? righe[posto].punti : null;
+
+  if (posto >= 0 && posto < 3) {
+    return (
+      <div className="animate-fade-up rounded-3xl border border-gold-400/60 bg-gold-500/10 px-5 py-8 text-center shadow-gold">
+        <p className="text-5xl">{["🥇", "🥈", "🥉"][posto]}</p>
+        <h1 className="mt-3 font-display text-4xl font-semibold text-gold-300">Sei al {POSTI[posto]}!</h1>
+        <p className="mt-2 text-sm text-mist/70">{punti} punti · codice <b className="font-mono tracking-widest">{codice}</b></p>
+        <p className="mt-6 text-xs font-semibold uppercase tracking-[0.3em] text-mist/60">PIN di controllo</p>
+        <p className="mt-1 font-mono text-6xl font-bold tracking-[0.25em] text-white">{pin}</p>
+        <p className="mx-auto mt-5 max-w-xs text-sm leading-relaxed text-mist/80">
+          Sali sul palco e mostra questo schermo: il PIN deve essere uguale a quello che vede la regia.
+        </p>
+      </div>
+    );
+  }
+  return (
+    <Attesa
+      titolo={posto >= 0 ? `Sei ${posto + 1}° in classifica` : "Stavolta niente podio"}
+      testo={posto >= 0 ? `${punti} punti. Bel lavoro: per poco non eri sul podio.` : "Guarda lo schermo: stanno per salire i primi tre."}
+    />
   );
 }

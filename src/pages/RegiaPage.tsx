@@ -284,6 +284,24 @@ function Pannello({ pw, onEsci }: { pw: string; onEsci: () => void }) {
             <p className="text-center text-sm text-mist/60">Era l'ultima domanda.</p>
           )}
           {q.stato === "aperta" && <p className="text-xs text-mist/45">Lasciate 20-30 secondi: col segnale debole le risposte arrivano in ritardo.</p>}
+
+          <div className="border-t border-white/10 pt-3">
+            <p className="text-xs font-semibold uppercase tracking-widest text-mist/50">Classifica dal vivo (solo tu vedi i PIN)</p>
+            {s.podio.length === 0 && <p className="mt-2 text-sm text-mist/40">Ancora nessuna risposta.</p>}
+            <ol className="mt-2 space-y-1.5">
+              {s.podio.slice(0, 5).map((r, i) => (
+                <li key={r.codice + i} className={`flex items-center gap-3 rounded-xl px-3 py-2 ${i < 3 ? "bg-gold-500/10" : "bg-white/[0.03]"}`}>
+                  <span className="w-6 text-sm text-mist/60">{i + 1}°</span>
+                  <span className="flex-1 font-mono text-lg font-bold tracking-widest">{r.codice}</span>
+                  <span className="text-xs text-mist/60">{r.punti} pt</span>
+                  <span className="rounded-lg bg-night-950/60 px-2 py-1 font-mono text-sm text-gold-300">PIN {r.pin}</span>
+                </li>
+              ))}
+            </ol>
+            <p className="mt-2 text-xs text-mist/45">
+              Quando sale sul palco, fatevi mostrare il telefono: il PIN sul suo schermo deve essere uguale a questo.
+            </p>
+          </div>
         </section>
       )}
 
