@@ -49,9 +49,12 @@ export default function GiocaPage() {
           <span className="text-xl text-gold-300">✦</span>
           <span className="text-sm font-semibold text-mist/90">Assemblea</span>
         </div>
-        <span className="rounded-full border border-gold-400/40 px-3 py-1 text-xs font-semibold text-mist/80">
-          il tuo codice <b className="ml-1 font-mono text-sm tracking-widest text-gold-300">{codice}</b>
-        </span>
+        {/* nella schermata iniziale il codice è già grande al centro */}
+        {stato && stato.fase !== "attesa" && (
+          <span className="rounded-full border border-gold-400/40 px-3 py-1 text-xs font-semibold text-mist/80">
+            il tuo codice <b className="ml-1 font-mono text-sm tracking-widest text-gold-300">{codice}</b>
+          </span>
+        )}
       </div>
 
       {offline && (
@@ -68,9 +71,6 @@ export default function GiocaPage() {
         )}
       </div>
 
-      <p className="text-center text-[11px] text-mist/30">
-        Anonimo: nessun nome. Il codice vive solo in questo telefono: non cambiarlo e non chiudere la pagina.
-      </p>
     </div>
   );
 }
@@ -281,12 +281,7 @@ function Benvenuto() {
   const { codice } = identita();
   return (
     <div className="animate-fade-up text-center">
-      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-gold-300">Il tuo codice</p>
-      <p className="mt-4 font-mono text-7xl font-bold tracking-[0.2em] text-gold-300">{codice}</p>
-      <h1 className="mt-6 font-display text-3xl font-semibold text-mist">Nessun nome, solo questo.</h1>
-      <p className="mx-auto mt-3 max-w-xs text-sm leading-relaxed text-mist/60">
-        Se vinci il quiz chiamiamo il tuo codice dal palco. Tieni aperta questa pagina: i giochi compaiono qui da soli.
-      </p>
+      <p className="pl-[0.2em] font-mono text-8xl font-bold tracking-[0.2em] text-gold-300">{codice}</p>
     </div>
   );
 }
